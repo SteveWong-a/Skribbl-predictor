@@ -95,13 +95,13 @@ def main():
     print(f"Loaded {len(vocab)} total vocabulary words.")
     
     # Test Case 1: Only word length known (5 letters)
-    simulate_prediction(vocab, "_____", target_word="apple")
+    simulate_prediction(vocab, "_____", target_word="purse")
     
     # Test Case 2: One letter revealed
-    simulate_prediction(vocab, "a____", target_word="apple")
+    simulate_prediction(vocab, "p____", target_word="purse")
     
     # Test Case 3: More letters revealed
-    simulate_prediction(vocab, "a__le", target_word="apple")
+    simulate_prediction(vocab, "p___e", target_word="purse")
 
 if __name__ == "__main__":
     main()

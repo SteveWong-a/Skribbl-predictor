@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -19,12 +20,23 @@ def load_vocab(vocab_path):
         return [line.strip() for line in f if line.strip()]
 
 def main():
+    # 2. Set up the argument parser
+    parser = argparse.ArgumentParser(description="Train Skribbl AI Predictor")
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    parser.add_argument('--data_dir', type=str, default=os.path.join(base_dir, "data", "quickdraw_data"), 
+                        help='Path to the QuickDraw dataset directory')
+    parser.add_argument('--tu_berlin_dir', type=str, default=os.path.join(base_dir, "data", "tu_berlin_data"), 
+                        help='Path to the TU Berlin dataset directory')
+    
+    args = parser.parse_args()
+
     # 1. Configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     vocab_path = os.path.join(base_dir, "data", "vocab.txt")
-    data_dir = os.path.join(base_dir, "data", "quickdraw_data")
-    tu_berlin_dir = os.path.join(base_dir, "data", "tu_berlin_data")
+    data_dir = args.data_dir
+    tu_berlin_dir = args.tu_berlin_dir
     batch_size = 32
     num_epochs = 100
     learning_rate = 1e-4
