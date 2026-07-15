@@ -29,17 +29,29 @@ def main():
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
         
-    # Load from vocab.txt instead of hardcoding
+    # Load from vocab.txt
     vocab_path = os.path.join(base_dir, "data", "vocab.txt")
-    subset_categories = []
+    vocab_words = []
     if os.path.exists(vocab_path):
         with open(vocab_path, 'r') as f:
-            subset_categories = [line.strip() for line in f if line.strip()]
+            vocab_words = [line.strip().lower() for line in f if line.strip()]
+    
+    # Fetch the official 345 QuickDraw categories from GitHub
+    categories_url = "https://raw.githubusercontent.com/googlecreativelab/quickdraw-dataset/master/categories.txt"
+    try:
+        r = requests.get(categories_url)
+        official_categories = [c.strip().lower() for c in r.text.split('\n') if c.strip()]
+    except:
+        official_categories = ["apple", "banana", "cat", "dog", "house"] # fallback
+        
+    # Intersect
+    subset_categories = [cat for cat in official_categories if not vocab_words or cat in vocab_words]
     
     if not subset_categories:
-        print("vocab.txt not found or empty! Downloading fallback categories...")
+        print("No valid QuickDraw categories found in vocab.txt! Downloading fallback categories...")
         subset_categories = ["apple", "banana", "cat", "dog", "house"]
     
+    print(f"Found {len(subset_categories)} valid QuickDraw categories to download...")
     for category in subset_categories:
         # Encode URL because some categories might have spaces e.g., 'alarm clock'
         filename = f"{category}.ndjson"
