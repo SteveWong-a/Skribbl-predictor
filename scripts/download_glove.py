@@ -4,8 +4,13 @@ import zipfile
 import sys
 
 url = "http://nlp.stanford.edu/data/glove.6B.zip"
-zip_path = "glove.6B.zip"
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data_dir = os.path.join(base_dir, "data")
+os.makedirs(data_dir, exist_ok=True)
+
+zip_path = os.path.join(data_dir, "glove.6B.zip")
 txt_file = "glove.6B.300d.txt"
+txt_path = os.path.join(data_dir, txt_file)
 
 # Download with resume
 headers = {}
@@ -33,7 +38,7 @@ except Exception as e:
 
 print("\nExtracting...")
 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-    zip_ref.extract(txt_file)
+    zip_ref.extract(txt_file, path=data_dir)
 print("Extraction complete. Deleting zip file...")
 os.remove(zip_path)
 print("Done!")
