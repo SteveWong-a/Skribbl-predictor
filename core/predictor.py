@@ -9,6 +9,21 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+    from PIL import Image
+
+    def filter_words_by_hint(vocab, hint):
+        valid_words = []
+        for word in vocab:
+            if len(word) != len(hint):
+                continue
+            match = True
+            for i in range(len(word)):
+                if hint[i] != '_' and hint[i] != word[i]:
+                    match = False
+                    break
+            if match:
+                valid_words.append(word)
+        return valid_words
     import torchvision.transforms as transforms
     TORCH_AVAILABLE = True
 except (ImportError, OSError) as e:
@@ -82,7 +97,12 @@ class PredictorThread(threading.Thread):
                 if item is None:
                     continue
                     
-                image_array, target_length = item
+                image_array, target_hint = item
+                
+                if isinstance(target_hint, int):
+                    target_hint = "_" * target_hint
+                    
+                target_length = len(target_hint)
                 
                 predictions = []
                 if np.all(image_array == 255):
@@ -94,7 +114,7 @@ class PredictorThread(threading.Thread):
                         output_emb = self.model(tensor_img, tensor_len).squeeze(0)
                         
                         # Cosine similarity for valid words
-                        valid_words = [w for w in self.vocab if len(w) == target_length]
+                        valid_words = filter_words_by_hint(self.vocab, target_hint)
                         if valid_words:
                             logits = []
                             for word in valid_words:
@@ -113,7 +133,7 @@ class PredictorThread(threading.Thread):
                             predictions = similarities[:3]
                 else:
                     # Mock mode without torch
-                    valid_words = [w for w in self.vocab if len(w) == target_length]
+                    valid_words = filter_words_by_hint(self.vocab, target_hint)
                     if valid_words:
                         # Pick 3 random valid words
                         chosen = random.sample(valid_words, min(3, len(valid_words)))
