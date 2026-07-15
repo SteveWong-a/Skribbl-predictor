@@ -16,7 +16,8 @@ class BoundaryBox(QWidget):
         self.setStyleSheet("background-color: red;")
 
         # Load initial geometry
-        self.bbox_file = "canvas_bbox.json"
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.bbox_file = os.path.join(base_dir, 'data', 'canvas_bbox.json')
         if os.path.exists(self.bbox_file):
             try:
                 with open(self.bbox_file, "r") as f:

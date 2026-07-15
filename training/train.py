@@ -10,8 +10,9 @@ import torchvision.transforms as transforms
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.getcwd()) # Fallback for Colab execution
 
-from predictor import SkribblPredictorModel
+from core.predictor import SkribblPredictorModel
 from dataset import SkribblDataset, TUBerlinDataset
+from core.embedding_utils import load_glove_embeddings
 
 def load_vocab(vocab_path):
     with open(vocab_path, 'r') as f:
@@ -20,9 +21,10 @@ def load_vocab(vocab_path):
 def main():
     # 1. Configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    vocab_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vocab.txt")
-    data_dir = "quickdraw_data"
-    tu_berlin_dir = "tu_berlin_data"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    vocab_path = os.path.join(base_dir, "data", "vocab.txt")
+    data_dir = os.path.join(base_dir, "data", "quickdraw_data")
+    tu_berlin_dir = os.path.join(base_dir, "data", "tu_berlin_data")
     batch_size = 32
     num_epochs = 100
     learning_rate = 1e-4
@@ -31,6 +33,10 @@ def main():
     vocab = load_vocab(vocab_path)
     print(f"Loaded {len(vocab)} vocab words.")
 
+    # Load real embeddings
+    glove_path = os.path.join(base_dir, "data", "glove.6B.300d.txt")
+    word_embeddings = load_glove_embeddings(vocab, glove_path)
+
     # 2. Data Loading
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -38,8 +44,8 @@ def main():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     
-    qd_dataset = SkribblDataset(data_dir=data_dir, vocab=vocab, transform=transform, max_samples_per_class=1000)
-    tu_dataset = TUBerlinDataset(data_dir=tu_berlin_dir, vocab=vocab, transform=transform)
+    qd_dataset = SkribblDataset(data_dir=data_dir, vocab=vocab, embeddings=word_embeddings, transform=transform, max_samples_per_class=1000)
+    tu_dataset = TUBerlinDataset(data_dir=tu_berlin_dir, vocab=vocab, embeddings=word_embeddings, transform=transform)
     
     datasets_to_concat = []
     if len(qd_dataset) > 0:
@@ -121,7 +127,7 @@ def main():
         # Save best model
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skribbl_model.pth")
+            model_path = os.path.join(base_dir, "weights", "skribbl_model.pth")
             torch.save(model.state_dict(), model_path)
             print(f"Saved best model to {model_path}")
 

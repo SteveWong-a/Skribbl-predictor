@@ -8,15 +8,18 @@ import torchvision.transforms as transforms
 
 
 class TUBerlinDataset(Dataset):
-    def __init__(self, data_dir, vocab, transform=None):
+    def __init__(self, data_dir, vocab, transform=None, embeddings=None):
         self.data_dir = data_dir
         self.vocab = vocab
         self.transform = transform
         self.samples = []
         
-        # Use the exact same embedding dictionary setup as your SkribblDataset
-        torch.manual_seed(42)
-        self.embeddings = {word: torch.randn(300) for word in vocab}
+        if embeddings is not None:
+            self.embeddings = embeddings
+        else:
+            # Use the exact same embedding dictionary setup as your SkribblDataset
+            torch.manual_seed(42)
+            self.embeddings = {word: torch.randn(300) for word in vocab}
         
         # Walk through TU Berlin folders (each folder name is a category)
         if os.path.exists(data_dir):
@@ -46,16 +49,19 @@ class TUBerlinDataset(Dataset):
 
 
 class SkribblDataset(Dataset):
-    def __init__(self, data_dir, vocab, transform=None, max_samples_per_class=1000):
+    def __init__(self, data_dir, vocab, transform=None, max_samples_per_class=1000, embeddings=None):
         self.data_dir = data_dir
         self.vocab = vocab
         self.transform = transform
         self.samples = []
         
-        # Load precomputed embeddings (in production, load GloVe/FastText)
-        # Here we mock them with fixed random vectors for consistency
-        torch.manual_seed(42)
-        self.embeddings = {word: torch.randn(300) for word in vocab}
+        if embeddings is not None:
+            self.embeddings = embeddings
+        else:
+            # Load precomputed embeddings (in production, load GloVe/FastText)
+            # Here we mock them with fixed random vectors for consistency
+            torch.manual_seed(42)
+            self.embeddings = {word: torch.randn(300) for word in vocab}
         
         self._load_data(max_samples_per_class)
         

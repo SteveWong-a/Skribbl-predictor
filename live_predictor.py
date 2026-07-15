@@ -5,9 +5,10 @@ import time
 import numpy as np
 import subprocess
 import json
+import json
 import os
 from PIL import ImageGrab
-from predictor import PredictorThread
+from core.predictor import PredictorThread
 
 # Configuration for Screen Capture
 # You must adjust these to match the bounding box of the skribbl.io canvas on your monitor!
@@ -33,7 +34,10 @@ def main():
     predictions = []
     past_guesses = []
     
-    predictor = PredictorThread('vocab.txt', input_queue, output_queue)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    vocab_path = os.path.join(base_dir, 'data', 'vocab.txt')
+    
+    predictor = PredictorThread(vocab_path, input_queue, output_queue)
     predictor.start()
     
     # UI Elements
@@ -54,9 +58,10 @@ def main():
             last_grab_time = current_time
             
             # Read updated bbox
-            if os.path.exists("canvas_bbox.json"):
+            bbox_path = os.path.join(base_dir, 'data', 'canvas_bbox.json')
+            if os.path.exists(bbox_path):
                 try:
-                    with open("canvas_bbox.json", "r") as f:
+                    with open(bbox_path, "r") as f:
                         data = json.load(f)
                         CANVAS_X = data["x"]
                         CANVAS_Y = data["y"]
@@ -104,7 +109,8 @@ def main():
                         past_guesses = []
                     elif btn_box_rect.collidepoint(pos):
                         if bbox_process is None or bbox_process.poll() is not None:
-                            bbox_process = subprocess.Popen([sys.executable, "boundary_box.py"])
+                            bbox_script = os.path.join(base_dir, 'ui', 'boundary_box.py')
+                            bbox_process = subprocess.Popen([sys.executable, bbox_script])
                         else:
                             bbox_process.terminate()
                             bbox_process = None

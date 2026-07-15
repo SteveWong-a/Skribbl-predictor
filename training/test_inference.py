@@ -7,7 +7,8 @@ from PIL import Image
 
 # Add parent directory to path to import the model
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from predictor import SkribblPredictorModel
+from core.predictor import SkribblPredictorModel
+from core.embedding_utils import load_glove_embeddings
 
 def load_vocab(vocab_path):
     with open(vocab_path, 'r') as f:
@@ -19,13 +20,14 @@ def main(image_path, target_length):
     
     # Paths
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    vocab_path = os.path.join(base_dir, "vocab.txt")
-    model_path = os.path.join(base_dir, "skribbl_model.pth")
+    vocab_path = os.path.join(base_dir, "data", "vocab.txt")
+    model_path = os.path.join(base_dir, "weights", "skribbl_model.pth")
+    glove_path = os.path.join(base_dir, "data", "glove.6B.300d.txt")
     
-    # Load Vocab & Mock Embeddings (in production, use real embeddings)
+    # Load Vocab & REAL Embeddings
     vocab = load_vocab(vocab_path)
-    torch.manual_seed(42)
-    word_embeddings = {word: torch.randn(300).to(device) for word in vocab}
+    cpu_embeddings = load_glove_embeddings(vocab, glove_path)
+    word_embeddings = {word: vec.to(device) for word, vec in cpu_embeddings.items()}
     
     # Load Model
     model = SkribblPredictorModel(embedding_dim=300).to(device)

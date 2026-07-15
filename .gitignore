@@ -10,8 +10,10 @@ __pycache__/
 
 # PyTorch models and data
 *.pth
-quickdraw_data/
-tu_berlin_data/
+weights/
+data/quickdraw_data/
+data/tu_berlin_data/
+data/glove.6B.300d.txt
 
 # OS generated files
 .DS_Store
@@ -24,4 +26,4 @@ Thumbs.db
 
 # Temp files
 *.tmp
-canvas_bbox.json
+data/canvas_bbox.json

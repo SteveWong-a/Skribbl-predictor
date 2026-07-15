@@ -2,8 +2,9 @@ import pygame
 import sys
 import numpy as np
 import queue
-from ui_components import UI
-from predictor import PredictorThread
+import os
+from ui.ui_components import UI
+from core.predictor import PredictorThread
 
 WIDTH, HEIGHT = 1000, 700
 
@@ -75,7 +76,10 @@ def main():
     predictions = []
     past_guesses = []
     
-    predictor = PredictorThread('vocab.txt', input_queue, output_queue)
+    # 3. Path references (if we need to fetch data paths, but vocab_path is in root/data/)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    vocab_path = os.path.join(base_dir, 'data', 'vocab.txt')
+    predictor = PredictorThread(vocab_path, input_queue, output_queue)
     predictor.start()
     
     clock = pygame.time.Clock()

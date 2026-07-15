@@ -3,6 +3,7 @@ import queue
 import time
 import numpy as np
 import random
+from core.embedding_utils import load_glove_embeddings
 
 try:
     import torch
@@ -51,13 +52,18 @@ class PredictorThread(threading.Thread):
             self.model = SkribblPredictorModel(embedding_dim=300).to(self.device)
             
             import os
-            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "skribbl_model.pth")
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            model_path = os.path.join(base_dir, "weights", "skribbl_model.pth")
             if os.path.exists(model_path):
                 self.model.load_state_dict(torch.load(model_path, map_location=self.device))
                 print(f"Loaded trained model weights from {model_path}")
                 
             self.model.eval()
-            self.word_embeddings = {word: torch.randn(300).to(self.device) for word in self.vocab}
+            
+            # Load the real embeddings and move them to the correct device (GPU/CPU)
+            glove_path = os.path.join(base_dir, "data", "glove.6B.300d.txt")
+            cpu_embeddings = load_glove_embeddings(self.vocab, glove_path)
+            self.word_embeddings = {word: vec.to(self.device) for word, vec in cpu_embeddings.items()}
             self.transform = transforms.Compose([
                 transforms.ToPILImage(),
                 transforms.Resize((224, 224)),
