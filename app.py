@@ -1,3 +1,4 @@
+import gradio as gr
 import os
 import sys
 import torch
@@ -5,7 +6,6 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from PIL import Image
 import numpy as np
-import gradio as gr
 
 # Setup paths and download GloVe if missing
 base_dir = os.path.dirname(os.path.abspath(__file__))

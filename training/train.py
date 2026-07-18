@@ -6,6 +6,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split, ConcatDataset
 import torchvision.transforms as transforms
+from tqdm import tqdm
+try:
+    from huggingface_hub import HfApi
+except ImportError:
+    HfApi = None
 
 # Add parent directory to path so we can import the model from predictor.py
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,17 +34,29 @@ def main():
                         help='Path to the QuickDraw dataset directory')
     parser.add_argument('--tu_berlin_dir', type=str, default=os.path.join(base_dir, "data", "tu_berlin_data"), 
                         help='Path to the TU Berlin dataset directory')
+    parser.add_argument('--output_dir', type=str, default=os.path.join(base_dir, "weights"), 
+                        help='Directory to save the trained model weights')
+    parser.add_argument('--batch_size', type=int, default=128, help='Batch size for training')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
+    parser.add_argument('--hf_repo_id', type=str, default=None, help='Optional: Hugging Face repo ID to upload model to (e.g. SteveaWong/AI-Drawing-Predictor)')
     
-    args = parser.parse_args()
+    # Use parse_known_args so Jupyter internal args don't crash the script
+    args, _ = parser.parse_known_args()
 
     # 1. Configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     vocab_path = os.path.join(base_dir, "data", "vocab.txt")
     data_dir = args.data_dir
     tu_berlin_dir = args.tu_berlin_dir
-    batch_size = 32
-    num_epochs = 100
-    learning_rate = 1e-4
+    output_dir = args.output_dir
+    batch_size = args.batch_size
+    num_epochs = args.epochs
+    learning_rate = args.lr
+    hf_repo_id = args.hf_repo_id
+
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
 
     print(f"Using device: {device}")
     vocab = load_vocab(vocab_path)
@@ -96,7 +113,7 @@ def main():
         model.train()
         running_loss = 0.0
         
-        for i, (images, lengths, target_embeddings) in enumerate(train_loader):
+        for i, (images, lengths, target_embeddings) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")):
             images = images.to(device)
             lengths = lengths.to(device)
             target_embeddings = target_embeddings.to(device)
@@ -115,9 +132,6 @@ def main():
             optimizer.step()
             
             running_loss += loss.item()
-            
-            if (i + 1) % 10 == 0:
-                print(f"Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}")
                 
         # Validation
         model.eval()
@@ -139,9 +153,29 @@ def main():
         # Save best model
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            model_path = os.path.join(base_dir, "weights", "skribbl_model.pth")
+            model_path = os.path.join(output_dir, "skribbl_model.pth")
             torch.save(model.state_dict(), model_path)
             print(f"Saved best model to {model_path}")
+            
+            # Optionally upload to Hugging Face during training to avoid losing progress if the notebook restarts
+            if hf_repo_id:
+                if HfApi is None:
+                    print("huggingface_hub is not installed! Cannot upload model. Run: pip install huggingface_hub")
+                else:
+                    if os.path.exists(model_path):
+                        print(f"Uploading checkpoint to Hugging Face repo: {hf_repo_id}...")
+                        try:
+                            api = HfApi()
+                            repo_type = "space" if "Predictor" in hf_repo_id else "model"
+                            api.upload_file(
+                                path_or_fileobj=model_path,
+                                path_in_repo="weights/skribbl_model.pth",
+                                repo_id=hf_repo_id,
+                                repo_type=repo_type
+                            )
+                            print("✅ Successfully backed up checkpoint to Hugging Face!")
+                        except Exception as e:
+                            print(f"❌ Failed to upload checkpoint: {e}")
 
 if __name__ == '__main__':
     main()
