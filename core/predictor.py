@@ -42,15 +42,20 @@ if TORCH_AVAILABLE:
             self.resnet.fc = nn.Identity()
             
             # We concatenate the word length (1 dim) to the 512 features
+            self.dropout = nn.Dropout(0.3)
             self.fc = nn.Linear(num_ftrs + 1, embedding_dim)
             
-        def forward(self, x, length):
+        def forward(self, x, lengths):
             features = self.resnet(x)
-            # concatenate length
-            length_tensor = length.view(-1, 1).float()
-            combined = torch.cat((features, length_tensor), dim=1)
-            out = self.fc(combined)
-            return out
+            
+            # Convert lengths to tensor of shape (batch_size, 1) and concatenate
+            lengths = lengths.unsqueeze(1).float()
+            combined = torch.cat((features, lengths), dim=1)
+            
+            # Apply dropout to prevent overfitting
+            combined = self.dropout(combined)
+            
+            return self.fc(combined)
 
 class PredictorThread(threading.Thread):
     def __init__(self, vocab_path, input_queue, output_queue):

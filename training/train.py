@@ -104,7 +104,8 @@ def main():
     
     # CosineEmbeddingLoss compares two vectors and pushes them together (y=1) or apart (y=-1)
     criterion = nn.CosineEmbeddingLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # Added weight decay (L2 regularization) to prevent overfitting
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 
     # 4. Training Loop
     best_val_loss = float('inf')
